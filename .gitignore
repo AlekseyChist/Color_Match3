@@ -1,0 +1,18 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+git filter-branch --force --index-filter "git rm --cached --ignore-unmatch app/src/main/java/com/example/color_match3/ApiClient.kt" --prune-empty --tag-name-filter cat -- --all
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+apikey.properties
+apikey.properties
