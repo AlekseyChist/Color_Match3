@@ -9,7 +9,8 @@ import androidx.appcompat.app.AppCompatActivity
 class MainActivity : AppCompatActivity() {
 
     // Список всех цветов с их ресурсами
-    val allColors = listOf(
+    val allColors: List<Pair<String, Int?>> = listOf(
+        "Выберите цвет" to null,  // Заглушка
         "Black" to R.color.black,
         "White" to R.color.white,
         "Gray" to R.color.gray,
@@ -29,7 +30,7 @@ class MainActivity : AppCompatActivity() {
     )
 
     // Словарь с возможными сочетаниями цветов
-    val colorCombinations = mapOf(
+    val colorCombinations: Map<String, List<String>> = mapOf(
         "Black" to listOf("White", "Gray", "Burgundy", "Olive Green", "Beige", "Khaki", "Sand", "Eggplant"),
         "White" to listOf("Black", "Gray", "Navy Blue", "Brown", "Beige", "Olive Green", "Khaki", "Indigo"),
         "Gray" to listOf("Black", "White", "Navy Blue", "Burgundy", "Brown", "Olive Green", "Indigo", "Eggplant"),
@@ -71,13 +72,18 @@ class MainActivity : AppCompatActivity() {
         spinner1.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selectedColor = allColors[position].first
-                val availableColorsForSecondSpinner = colorCombinations[selectedColor]?.map { colorName ->
-                    allColors.find { it.first == colorName }!!
-                } ?: emptyList()
-                setupSpinner(spinner2, availableColorsForSecondSpinner)
+                if (selectedColor != "Выберите цвет") {
+                    val availableColorsForSecondSpinner = colorCombinations[selectedColor]?.map { colorName ->
+                        allColors.find { it.first == colorName }!!
+                    } ?: emptyList()
+                    setupSpinner(spinner2, listOf("Выберите цвет" to null) + availableColorsForSecondSpinner)
 
-                spinner2.isEnabled = true
-                spinner3.isEnabled = false // Отключаем третий спиннер до выбора во втором
+                    spinner2.isEnabled = true
+                    spinner3.isEnabled = false // Отключаем третий спиннер до выбора во втором
+                } else {
+                    spinner2.isEnabled = false
+                    spinner3.isEnabled = false
+                }
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -86,21 +92,25 @@ class MainActivity : AppCompatActivity() {
         // Обработчик выбора второго спиннера
         spinner2.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val firstColor = spinner1.selectedItem as Pair<String, Int>
-                val secondColor = spinner2.selectedItem as Pair<String, Int>
-                val availableColorsForThirdSpinner = allColors.filter {
-                    it != firstColor && it != secondColor
-                }
-                setupSpinner(spinner3, availableColorsForThirdSpinner)
+                val firstColor = spinner1.selectedItem as Pair<String, Int?>
+                val secondColor = spinner2.selectedItem as Pair<String, Int?>
+                if (secondColor.first != "Выберите цвет") {
+                    val availableColorsForThirdSpinner = allColors.filter {
+                        it != firstColor && it != secondColor
+                    }
+                    setupSpinner(spinner3, listOf("Выберите цвет" to null) + availableColorsForThirdSpinner)
 
-                spinner3.isEnabled = true
+                    spinner3.isEnabled = true
+                } else {
+                    spinner3.isEnabled = false
+                }
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
 
-    private fun setupSpinner(spinner: Spinner, items: List<Pair<String, Int>>) {
+    private fun setupSpinner(spinner: Spinner, items: List<Pair<String, Int?>>) {
         val adapter = ColorSpinnerAdapter(this, items)
         spinner.adapter = adapter
     }

@@ -10,8 +10,8 @@ import androidx.core.content.ContextCompat
 
 class ColorSpinnerAdapter(
     context: Context,
-    private val colors: List<Pair<String, Int>>
-) : ArrayAdapter<Pair<String, Int>>(context, 0, colors) {
+    private val colors: List<Pair<String, Int?>>
+) : ArrayAdapter<Pair<String, Int?>>(context, 0, colors) {
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         return createViewFromResource(position, convertView, parent)
@@ -29,8 +29,12 @@ class ColorSpinnerAdapter(
         val item = getItem(position)
 
         item?.let {
-            val color = ContextCompat.getColor(context, it.second)
-            colorCircle.setBackgroundColor(color)  // Устанавливаем цвет напрямую
+            if (it.second != null) {
+                val color = ContextCompat.getColor(context, it.second!!)
+                colorCircle.setBackgroundColor(color)  // Устанавливаем цвет напрямую
+            } else {
+                colorCircle.setBackgroundColor(ContextCompat.getColor(context, android.R.color.transparent))
+            }
             colorName.text = it.first
         }
 
