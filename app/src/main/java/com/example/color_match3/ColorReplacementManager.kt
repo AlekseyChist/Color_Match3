@@ -12,26 +12,35 @@ import kotlinx.coroutines.withContext
 
 class ColorReplacementManager {
 
-    fun replaceColorsInDrawableAsync(
-        appContext: Context, // Переименовал переменную, чтобы избежать конфликта
+    suspend fun replaceColorsInDrawable(
+        context: Context,
         drawableResource: Int,
         firstColor: Int,
         secondColor: Int,
-        thirdColor: Int,
-        onComplete: (Bitmap) -> Unit
-    ) {
-        CoroutineScope(Dispatchers.Default).launch {
-            val drawable = ContextCompat.getDrawable(appContext, drawableResource)!!
-            val bitmap = getBitmapFromDrawable(drawable)
+        thirdColor: Int
+    ): Bitmap = withContext(Dispatchers.Default) {
+        val drawable = ContextCompat.getDrawable(context, drawableResource)!!
+        val bitmap = getBitmapFromDrawable(drawable)
 
-            // Выполняем замену цветов в фоновом потоке
-            val modifiedBitmap = replaceColorsInBitmap(appContext, bitmap, firstColor, secondColor, thirdColor)
+        val pixelColors = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(pixelColors, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
 
-            // Возвращаем результат на главный поток
-            withContext(Dispatchers.Main) {
-                onComplete(modifiedBitmap)
+        val whiteColor2 = ContextCompat.getColor(context, R.color.white2)
+        val whiteColor3 = ContextCompat.getColor(context, R.color.white3)
+        val whiteColor = ContextCompat.getColor(context, R.color.white)
+
+        for (i in pixelColors.indices) {
+            pixelColors[i] = when (pixelColors[i]) {
+                whiteColor2 -> firstColor
+                whiteColor3 -> secondColor
+                whiteColor -> thirdColor
+                else -> pixelColors[i]
             }
         }
+
+        val modifiedBitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        modifiedBitmap.setPixels(pixelColors, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+        modifiedBitmap
     }
 
     private fun getBitmapFromDrawable(drawable: Drawable): Bitmap {
@@ -44,32 +53,5 @@ class ColorReplacementManager {
         drawable.setBounds(0, 0, canvas.width, canvas.height)
         drawable.draw(canvas)
         return bitmap
-    }
-
-    private fun replaceColorsInBitmap(
-        context: Context, // Используем правильный тип контекста
-        bitmap: Bitmap,
-        firstColor: Int,
-        secondColor: Int,
-        thirdColor: Int
-    ): Bitmap {
-        val modifiedBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-        val canvas = Canvas(modifiedBitmap)
-        val paint = Paint()
-
-        // Проходим по каждому пикселю и заменяем нужные цвета
-        for (x in 0 until bitmap.width) {
-            for (y in 0 until bitmap.height) {
-                val pixel = bitmap.getPixel(x, y)
-                paint.color = when (pixel) {
-                    ContextCompat.getColor(context, R.color.white2) -> firstColor
-                    ContextCompat.getColor(context, R.color.white3) -> secondColor
-                    ContextCompat.getColor(context, R.color.white) -> thirdColor
-                    else -> pixel
-                }
-                canvas.drawPoint(x.toFloat(), y.toFloat(), paint)
-            }
-        }
-        return modifiedBitmap
     }
 }

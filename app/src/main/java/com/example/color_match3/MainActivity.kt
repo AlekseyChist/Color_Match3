@@ -6,17 +6,21 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.Spinner
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    lateinit var spinner1: Spinner
-    lateinit var spinner2: Spinner
-    lateinit var spinner3: Spinner
-    lateinit var imageView: ImageView
-    lateinit var updateButton: Button
+    private lateinit var spinner1: Spinner
+    private lateinit var spinner2: Spinner
+    private lateinit var spinner3: Spinner
+    private lateinit var imageView: ImageView
+    private lateinit var updateButton: Button
+    private lateinit var progressBar: ProgressBar
 
     private val colorData = ColorData()
     private val colorReplacementManager = ColorReplacementManager()
@@ -25,16 +29,24 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        initViews()
+        setupSpinners()
+        setupUpdateButton()
+    }
+
+    private fun initViews() {
         spinner1 = findViewById(R.id.spinner1)
         spinner2 = findViewById(R.id.spinner2)
         spinner3 = findViewById(R.id.spinner3)
         imageView = findViewById(R.id.imageView)
         updateButton = findViewById(R.id.updateButton)
+        progressBar = findViewById(R.id.progressBar)
 
-        // Изначально скрываем второй и третий спиннеры
         spinner2.visibility = View.GONE
         spinner3.visibility = View.GONE
+    }
 
+    private fun setupSpinners() {
         setupSpinner(spinner1, colorData.allColors)
 
         spinner1.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -43,7 +55,6 @@ class MainActivity : AppCompatActivity() {
                 if (selectedColor != "Выберите цвет") {
                     val availableColorsForSecondSpinner = colorData.getAvailableColorsForSecondSpinner(selectedColor)
                     setupSpinner(spinner2, listOf("Выберите цвет" to null) + availableColorsForSecondSpinner)
-
                     spinner2.visibility = View.VISIBLE
                     spinner3.visibility = View.GONE
                 } else {
@@ -62,7 +73,6 @@ class MainActivity : AppCompatActivity() {
                 if (secondColor.first != "Выберите цвет") {
                     val availableColorsForThirdSpinner = colorData.getAvailableColorsForThirdSpinner(firstColor.first, secondColor.first)
                     setupSpinner(spinner3, listOf("Выберите цвет" to null) + availableColorsForThirdSpinner)
-
                     spinner3.visibility = View.VISIBLE
                 } else {
                     spinner3.visibility = View.GONE
@@ -71,15 +81,17 @@ class MainActivity : AppCompatActivity() {
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
-
-        updateButton.setOnClickListener {
-            updateImageColors()
-        }
     }
 
     private fun setupSpinner(spinner: Spinner, items: List<Pair<String, Int?>>) {
         val adapter = ColorSpinnerAdapter(this, items)
         spinner.adapter = adapter
+    }
+
+    private fun setupUpdateButton() {
+        updateButton.setOnClickListener {
+            updateImageColors()
+        }
     }
 
     private fun updateImageColors() {
@@ -92,15 +104,23 @@ class MainActivity : AppCompatActivity() {
             val secondColor = ContextCompat.getColor(this, secondColorResource)
             val thirdColor = ContextCompat.getColor(this, thirdColorResource)
 
-            // Асинхронный вызов
-            colorReplacementManager.replaceColorsInDrawableAsync(
-                this,
-                R.drawable.mansvg,
-                firstColor,
-                secondColor,
-                thirdColor
-            ) { modifiedBitmap ->
-                imageView.setImageBitmap(modifiedBitmap)
+            progressBar.visibility = View.VISIBLE
+            updateButton.isEnabled = false
+
+            lifecycleScope.launch {
+                try {
+                    val modifiedBitmap = colorReplacementManager.replaceColorsInDrawable(
+                        this@MainActivity,
+                        R.drawable.mansvg,
+                        firstColor,
+                        secondColor,
+                        thirdColor
+                    )
+                    imageView.setImageBitmap(modifiedBitmap)
+                } finally {
+                    progressBar.visibility = View.GONE
+                    updateButton.isEnabled = true
+                }
             }
         }
     }
