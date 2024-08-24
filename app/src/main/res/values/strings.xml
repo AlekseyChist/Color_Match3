@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Color_Match3</string>
+    <string name="mansvg_description">изменяемый менекен в формате svg</string>
 </resources>

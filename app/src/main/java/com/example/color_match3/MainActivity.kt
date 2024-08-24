@@ -1,57 +1,25 @@
 package com.example.color_match3
 
+import ColorReplacementManager
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
+import android.widget.Button
+import android.widget.ImageView
 import android.widget.Spinner
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
-
-    // Список всех цветов с их ресурсами
-    val allColors: List<Pair<String, Int?>> = listOf(
-        "Выберите цвет" to null,  // Заглушка
-        "Black" to R.color.black,
-        "White" to R.color.white,
-        "Gray" to R.color.gray,
-        "Navy Blue" to R.color.navy_blue,
-        "Brown" to R.color.brown,
-        "Beige" to R.color.beige,
-        "Olive Green" to R.color.olive_green,
-        "Forest Green" to R.color.forest_green,
-        "Burgundy" to R.color.burgundy,
-        "Khaki" to R.color.khaki,
-        "Indigo" to R.color.indigo,
-        "Dark Brown" to R.color.dark_brown,
-        "Charcoal Gray" to R.color.charcoal_gray,
-        "Chocolate" to R.color.chocolate,
-        "Sand" to R.color.sand,
-        "Eggplant" to R.color.eggplant
-    )
-
-    // Словарь с возможными сочетаниями цветов
-    val colorCombinations: Map<String, List<String>> = mapOf(
-        "Black" to listOf("White", "Gray", "Burgundy", "Olive Green", "Beige", "Khaki", "Sand", "Eggplant"),
-        "White" to listOf("Black", "Gray", "Navy Blue", "Brown", "Beige", "Olive Green", "Khaki", "Indigo"),
-        "Gray" to listOf("Black", "White", "Navy Blue", "Burgundy", "Brown", "Olive Green", "Indigo", "Eggplant"),
-        "Navy Blue" to listOf("White", "Gray", "Brown", "Beige", "Khaki", "Burgundy", "Olive Green"),
-        "Brown" to listOf("Beige", "White", "Gray", "Olive Green", "Navy Blue", "Khaki", "Sand"),
-        "Beige" to listOf("Brown", "Navy Blue", "Olive Green", "Burgundy", "White", "Khaki", "Sand"),
-        "Olive Green" to listOf("Beige", "Brown", "Black", "White", "Khaki", "Navy Blue", "Sand"),
-        "Forest Green" to listOf("Beige", "Brown", "Khaki", "Sand"),
-        "Burgundy" to listOf("Gray", "Navy Blue", "Black", "Brown", "Beige", "Khaki", "Eggplant"),
-        "Khaki" to listOf("Brown", "Olive Green", "Navy Blue", "Burgundy", "Black", "Sand"),
-        "Indigo" to listOf("Gray", "White", "Beige", "Eggplant"),
-        "Dark Brown" to listOf("Beige", "White", "Gray", "Olive Green", "Khaki"),
-        "Charcoal Gray" to listOf("White", "Black", "Burgundy", "Olive Green"),
-        "Chocolate" to listOf("Beige", "White", "Khaki", "Sand"),
-        "Sand" to listOf("Brown", "Olive Green", "Khaki", "Chocolate"),
-        "Eggplant" to listOf("Gray", "Burgundy", "Indigo", "Black")
-    )
 
     lateinit var spinner1: Spinner
     lateinit var spinner2: Spinner
     lateinit var spinner3: Spinner
+    lateinit var imageView: ImageView
+    lateinit var updateButton: Button
+
+    private val colorData = ColorData()
+    private val colorReplacementManager = ColorReplacementManager()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,58 +28,80 @@ class MainActivity : AppCompatActivity() {
         spinner1 = findViewById(R.id.spinner1)
         spinner2 = findViewById(R.id.spinner2)
         spinner3 = findViewById(R.id.spinner3)
+        imageView = findViewById(R.id.imageView)
+        updateButton = findViewById(R.id.updateButton)
 
-        // Изначально делаем все спиннеры, кроме первого, недоступными
-        spinner2.isEnabled = false
-        spinner3.isEnabled = false
+        // Изначально скрываем второй и третий спиннеры
+        spinner2.visibility = View.GONE
+        spinner3.visibility = View.GONE
 
-        // Настройка первого спиннера со всеми цветами
-        setupSpinner(spinner1, allColors)
+        setupSpinner(spinner1, colorData.allColors)
 
-        // Обработчик выбора первого спиннера
         spinner1.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val selectedColor = allColors[position].first
+                val selectedColor = colorData.allColors[position].first
                 if (selectedColor != "Выберите цвет") {
-                    val availableColorsForSecondSpinner = colorCombinations[selectedColor]?.map { colorName ->
-                        allColors.find { it.first == colorName }!!
-                    } ?: emptyList()
+                    val availableColorsForSecondSpinner = colorData.getAvailableColorsForSecondSpinner(selectedColor)
                     setupSpinner(spinner2, listOf("Выберите цвет" to null) + availableColorsForSecondSpinner)
 
-                    spinner2.isEnabled = true
-                    spinner3.isEnabled = false // Отключаем третий спиннер до выбора во втором
+                    spinner2.visibility = View.VISIBLE
+                    spinner3.visibility = View.GONE
                 } else {
-                    spinner2.isEnabled = false
-                    spinner3.isEnabled = false
+                    spinner2.visibility = View.GONE
+                    spinner3.visibility = View.GONE
                 }
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        // Обработчик выбора второго спиннера
         spinner2.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val firstColor = spinner1.selectedItem as Pair<String, Int?>
                 val secondColor = spinner2.selectedItem as Pair<String, Int?>
                 if (secondColor.first != "Выберите цвет") {
-                    val availableColorsForThirdSpinner = allColors.filter {
-                        it != firstColor && it != secondColor
-                    }
+                    val availableColorsForThirdSpinner = colorData.getAvailableColorsForThirdSpinner(firstColor.first, secondColor.first)
                     setupSpinner(spinner3, listOf("Выберите цвет" to null) + availableColorsForThirdSpinner)
 
-                    spinner3.isEnabled = true
+                    spinner3.visibility = View.VISIBLE
                 } else {
-                    spinner3.isEnabled = false
+                    spinner3.visibility = View.GONE
                 }
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        updateButton.setOnClickListener {
+            updateImageColors()
         }
     }
 
     private fun setupSpinner(spinner: Spinner, items: List<Pair<String, Int?>>) {
         val adapter = ColorSpinnerAdapter(this, items)
         spinner.adapter = adapter
+    }
+
+    private fun updateImageColors() {
+        val firstColorResource = (spinner1.selectedItem as? Pair<String, Int?>)?.second
+        val secondColorResource = (spinner2.selectedItem as? Pair<String, Int?>)?.second
+        val thirdColorResource = (spinner3.selectedItem as? Pair<String, Int?>)?.second
+
+        if (firstColorResource != null && secondColorResource != null && thirdColorResource != null) {
+            val firstColor = ContextCompat.getColor(this, firstColorResource)
+            val secondColor = ContextCompat.getColor(this, secondColorResource)
+            val thirdColor = ContextCompat.getColor(this, thirdColorResource)
+
+            // Асинхронный вызов
+            colorReplacementManager.replaceColorsInDrawableAsync(
+                this,
+                R.drawable.mansvg,
+                firstColor,
+                secondColor,
+                thirdColor
+            ) { modifiedBitmap ->
+                imageView.setImageBitmap(modifiedBitmap)
+            }
+        }
     }
 }
