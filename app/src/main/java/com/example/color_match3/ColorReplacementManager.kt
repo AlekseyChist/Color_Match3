@@ -25,9 +25,9 @@ class ColorReplacementManager {
         val pixelColors = IntArray(bitmap.width * bitmap.height)
         bitmap.getPixels(pixelColors, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
 
-        val whiteColor2 = ContextCompat.getColor(context, R.color.white2)
-        val whiteColor3 = ContextCompat.getColor(context, R.color.white3)
-        val whiteColor = ContextCompat.getColor(context, R.color.white)
+        val whiteColor2 = ContextCompat.getColor(context, R.color.jacket)
+        val whiteColor3 = ContextCompat.getColor(context, R.color.pullover)
+        val whiteColor = ContextCompat.getColor(context, R.color.pants)
 
         for (i in pixelColors.indices) {
             pixelColors[i] = when (pixelColors[i]) {
